@@ -37,6 +37,6 @@ class EncoderBlock(nn.Module):
         )
 
     def forward(self, x: torch.Tensor):
-        x = self.attention(x)
+        x = self.attention(x,x,x)
         y = self.feed_forward(x)
         return y

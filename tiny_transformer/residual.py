@@ -8,5 +8,6 @@ class Residual(nn.Module):
         self.norm = nn.LayerNorm(num_features)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor):
-        return self.norm(x + self.dropout(self.layer(x)))
+    def forward(self, *tensors: torch.Tensor):
+        # *tensors because it would either be (query, key and value) or just some x alone
+        return self.norm(tensors[-1] + self.dropout(self.layer(*tensors)))
