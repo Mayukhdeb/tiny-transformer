@@ -1,149 +1,79 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as f
+import torch.nn.functional as F
 
 from .mask import generate_square_subsequent_mask
 
 class ScaledDotProductAttention(nn.Module):
-    def __init__(self):
+    def __init__(self, temperature, attn_dropout=0.1):
         super().__init__()
-        self.scale = None
+        self.temperature = temperature
+        self.dropout = nn.Dropout(attn_dropout)
 
-    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor , mask = None):
-        """Super simple implementation of the attention mechanism. 
-        Q, K, and V are batches of matrices.
+    def forward(self, q, k, v, mask=None):
 
-            attention =  softmax(q.dot(k.T) / q.size(-1) ** 0.5)
-            if mask is not none: attention *= mask
-            output = attention.dot(v)
+        attn = torch.matmul(q / self.temperature, k.transpose(2, 3))
 
-        q, k, v are all of shape: each with shape (batch_size, seq_length, num_features)
-
-        example usage:
-
-        ```
-        q = torch.randn(1, 20, 100)
-        k = torch.randn(1, 20, 100)
-        v = torch.randn(1, 20, 100)
-        m = torch.randn(1, 20, 20)  ## not a real mask, but has valid shape
-
-        y = ScaledDotProductAttention()(
-            query = q,
-            key = k,
-            value = v,
-            mask = m
-        )
-
-        print(y.shape) ## should be (1, 20, 100)
-        ```
-
-        Returns:
-            torch.Tensor or shape: (batch_size, seq_length, num_features)
-        """
-
-        ## we use bmm instead of torch.mm because we're gonna expect batches
-        q_dot_k = query.bmm(key.transpose(1, 2))
-        
         if mask is not None:
-            assert(mask.shape == q_dot_k.shape), f'Invalid mask shape {mask.shape} for q_dot_k of shape {q_dot_k.shape}'
-            q_dot_k = q_dot_k * mask
+            assert (attn.shape[-2:] == mask.shape[-2:])
+            attn = attn * mask
 
-        if self.scale is None:
-            self.scale = query.size(-1) ** 0.5
+        attn = self.dropout(F.softmax(attn, dim=-1))
+        output = torch.matmul(attn, v)
 
-        attention = f.softmax(q_dot_k / self.scale, dim=-1)
-        return attention.bmm(value)
-
-
-class AttentionHead(nn.Module):
-    """Takes an input x and runs the attention mechanism over it.
-    It generates q,k and v from x with 3 different linear layers.
-
-    Example:
-    ```
-    ah = AttentionHead(num_features = 100, seq_length = 20, out_num_features = 6)
-    x = torch.randn(1, 20, 100)  ## batch size, seq length, num features
-    print(ah(x).shape) ## torch.Size([1, 20, 6]) i.e batch_size, seq length, out_seq_length
-    ```
-
-    Args:
-        num_features (int): number of input features
-        seq_length (int): length of sequence
-        out_num_features (int): number of features on output
-    """
-    def __init__(self, num_features: int, seq_length: int, out_num_features: int, masked: bool = False):
-        
-        super().__init__()
-        self.to_query = nn.Linear(num_features, seq_length)
-        self.to_key = nn.Linear(num_features, seq_length)
-        self.to_value = nn.Linear(num_features, out_num_features)
-
-        self.core_attention_mechanism = ScaledDotProductAttention()
-
-        if masked == True:
-            self.mask = generate_square_subsequent_mask(size = seq_length).unsqueeze(0)
-        else:
-            self.mask = None
-
-    def forward(self, query, key, value):
-        """
-        Note: query, key, and value are generally the same input vector, 
-        except for when you're feeding the output of the transformer's encoder into the decoder.
-
-        In that case:
-        - query = output of encoder
-        - key = output of encoder
-        - value = output of masked attention layer in decoder
-
-        Returns:
-            torch.Tensor
-        """
-
-        return self.core_attention_mechanism(
-            query = self.to_query(query), 
-            key = self.to_key(key), 
-            value = self.to_value(value),
-            mask = self.mask
-        )
+        return output
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, num_heads: int, num_features: int, seq_length: int, out_num_features: int, masked: bool = False):
-        """
-        each head can attend to different parts of the input sequence, independent of the others. 
-        Increasing the number of attention heads allows us to “pay attention” to 
-        more parts of the sequence at once, which makes the model more powerful.
-
-        Args:
-            num_heads (int): [description]
-            num_features (int): [description]
-            seq_length (int): [description]
-            out_num_features (int): [description]
-        """
+    def __init__(self, num_heads, num_features, seq_length, out_num_features, dropout=0.1, masked = False):
         super().__init__()
-        self.heads = nn.ModuleList(
-            [AttentionHead(num_features, seq_length, out_num_features, masked = masked) for _ in range(num_heads)]
-        )
-        self.linear = nn.Linear(num_heads * out_num_features, num_features)
 
-    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor):
-        """forward pass on a multi attention head
+        self.num_heads = num_heads
+        self.seq_length = seq_length
+        self.out_num_features = out_num_features
 
-                   x
-                  /|\      
-            head_1...head_n
-                   |
-         (concat along dim: -1)
-                   |
-             (linear layer)
-                   |
-                (output)
 
-        Args:
-            x (torch.Tensor): input tensor of shape (batch_size, seq_length, num_features)
+        # note that there are no biases
+        self.w_qs = nn.Linear(num_features, num_heads * seq_length, bias=False)
+        self.w_ks = nn.Linear(num_features, num_heads * seq_length, bias=False)
+        self.w_vs = nn.Linear(num_features, num_heads * out_num_features, bias=False)
+        self.fc = nn.Linear(num_heads * out_num_features, num_features, bias=False)
 
-        Returns:
-            torch.Tensor
-        """
-        list_of_attention_outputs = [h(query = query, key = key, value = value) for h in self.heads]
-        concatenated_outs = torch.cat(list_of_attention_outputs, dim=-1)
-        return self.linear(concatenated_outs)
+        self.attention = ScaledDotProductAttention(temperature = seq_length ** 0.5)
+
+        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(num_features, eps=1e-6)
+        self.masked = masked
+
+    def forward(self, q, k, v):
+
+        seq_length, out_num_features, num_heads = self.seq_length, self.out_num_features, self.num_heads
+        batch_size, len_q, len_k, len_v = q.size(0), q.size(1), k.size(1), v.size(1)
+
+        residual = q
+
+        # Pass through the pre-attention projection: b x lq x (n*dv)
+        # Separate different heads: b x lq x n x dv
+        q = self.w_qs(q).view(batch_size, len_q, num_heads, seq_length)
+        k = self.w_ks(k).view(batch_size, len_k, num_heads, seq_length)
+        v = self.w_vs(v).view(batch_size, len_v, num_heads, out_num_features)
+
+        # Transpose for attention dot product
+        q, k, v = q.transpose(1, 2), k.transpose(1, 2), v.transpose(1, 2)
+
+        if self.masked == True:
+            mask= generate_square_subsequent_mask(size = len_k)
+        else:
+            mask = None
+    
+        q = self.attention(q, k, v, mask=mask)
+
+        # Transpose to move the head dimension back: b x lq x n x dv
+        # Combine the last two dimensions to concatenate all the heads together: b x lq x (n*dv)
+        q = q.transpose(1, 2).contiguous().view(batch_size, len_q, -1)
+        q = self.dropout(self.fc(q))
+        q += residual
+
+        q = self.layer_norm(q)
+
+        return q
+
