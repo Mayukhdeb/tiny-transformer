@@ -4,7 +4,7 @@ from .attention import MultiHeadAttention
 from .residual import Residual
 from .feed_forward import FeedForwardLayer
 
-class TransformerDecoderLayer(nn.Module):
+class DecoderBlock(nn.Module):
     def __init__(
         self, 
         num_features: int = 512, 
@@ -21,13 +21,15 @@ class TransformerDecoderLayer(nn.Module):
                                         num_heads = num_heads, 
                                         num_features = num_features, 
                                         seq_length = num_features_per_head, 
-                                        out_num_features = out_num_features
+                                        out_num_features = out_num_features,
+                                        masked= True
                                     )
         multi_head_attention_layer_2 = MultiHeadAttention(
                                         num_heads = num_heads, 
                                         num_features = num_features, 
                                         seq_length = num_features_per_head, 
-                                        out_num_features = out_num_features
+                                        out_num_features = out_num_features,
+                                        masked = False
                                     )
         self.attention_1 = Residual(
             multi_head_attention_layer_1,

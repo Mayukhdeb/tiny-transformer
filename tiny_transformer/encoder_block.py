@@ -22,7 +22,8 @@ class EncoderBlock(nn.Module):
                                         num_heads = num_heads, 
                                         num_features = num_features, 
                                         seq_length = num_features_per_head, 
-                                        out_num_features = out_num_features
+                                        out_num_features = out_num_features,
+                                        masked = False
                                     )
         self.attention = Residual(
             multi_head_attention_layer,
