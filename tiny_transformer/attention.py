@@ -16,7 +16,7 @@ class ScaledDotProductAttention(nn.Module):
 
         if mask is not None:
             assert (attn.shape[-2:] == mask.shape[-2:])
-            attn = attn * mask
+            attn = attn + mask
 
         attn = self.dropout(F.softmax(attn, dim=-1))
         output = torch.matmul(attn, v)
