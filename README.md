@@ -40,7 +40,7 @@ Since we are splitting the input along the embedding dimension, separate section
 When we feed an encoded form of an image/sentence into a transformer, it is also important for the model to "know" the position of each element in the sequence with respect to each other. This is where positional embeddings help. Generally, they're either added or concatenated into the input embedding vector before feeding it into the encoder/decoder blocks.
 
 
-* Masked attention 
+## Masked attention 
 
 <img src = "https://raw.githubusercontent.com/Mayukhdeb/tiny-transformer/master/images/attention.png?token=AMVMCQRVG3U7ZZWW2GX4PCDBRYDGE" width = "80%">
 
@@ -49,9 +49,9 @@ Masks serve to prevent the decoder from ‘peeking’ ahead at the rest of the t
 Note that masked attention is applied only to the first self-attention layer of the decoder. 
 
 
-* The transformer's architecture
+## The transformer's architecture
 
-<img src = "images/transformer.png" width = "50%">
+<img src = "https://raw.githubusercontent.com/Mayukhdeb/tiny-transformer/master/images/transformer.png?token=AMVMCQRAZPRHNC3Z2G6UTW3BRYUTQ" width = "50%">
 
 
 ## Resources
