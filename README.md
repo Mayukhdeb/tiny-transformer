@@ -16,12 +16,12 @@ The transformer is a solution to both the issues, it enables us to map long rang
 
 In simple words, Attention can be thought of a form of an approximation of a [SELECT](https://www.youtube.com/watch?t=707&v=OyFJWRnt_AY&feature=youtu.be) from a database.
 
-<img src = "https://raw.githubusercontent.com/Mayukhdeb/tiny-transformer/master/images/attention_mechanism.png?token=AMVMCQQZZZD732KD7R4VS73BRYC6S" width = "50%">
+<img src = "images/attention_mechanism.png" width = "50%">
 
 
 ### Multi Headed Attention
 
-<img src = "https://raw.githubusercontent.com/Mayukhdeb/tiny-transformer/master/images/multi_head_attention.png?token=AMVMCQRYR52DPGKANDYA7IDBRYUMW" width = "100%">
+<img src = "images/multi_head_attention.png" width = "100%">
 
 Let us imagine that we want to pass a tensor of shape `(batch_size, seq, emb)` through a multi-head attention layer. Where `seq` is the length of the sequence and `emb` is the embedding size of each element in the sequence.
 
@@ -42,7 +42,7 @@ When we feed an encoded form of an image/sentence into a transformer, it is also
 
 ## Masked attention 
 
-<img src = "https://raw.githubusercontent.com/Mayukhdeb/tiny-transformer/master/images/attention.png?token=AMVMCQRVG3U7ZZWW2GX4PCDBRYDGE" width = "80%">
+<img src = "images/attention.png" width = "80%">
 
 Masks serve to prevent the decoder from ‘peeking’ ahead at the rest of the target sentence when predicting the next word. The similarity scores of the "future" words are set to minus infinity so that they become zero after passing through the softmax layer. 
 
@@ -51,7 +51,7 @@ Note that masked attention is applied only to the first self-attention layer of 
 
 ## The transformer's architecture
 
-<img src = "https://raw.githubusercontent.com/Mayukhdeb/tiny-transformer/master/images/transformer.png?token=AMVMCQRAZPRHNC3Z2G6UTW3BRYUTQ" width = "50%">
+<img src = "images/transformer.png" width = "50%">
 
 
 ## Resources
