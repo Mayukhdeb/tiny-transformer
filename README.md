@@ -1,6 +1,30 @@
 # tiny-transformer
 tiny transformer(s) on pytorch
 
+A tiny transformer decoder:
+
+```python
+import torch
+from tiny_transformer import Decoder
+
+x = torch.randn(1, 22, 512)
+
+d = Decoder(
+    num_layers=5,
+    num_features=512,
+    num_heads=4,
+    dim_feedforward=1024,
+    device="cpu",
+    dropout=0.1,
+)
+
+out = d.forward(x)
+
+print(out.shape)  ## should be (1, 22, 512)
+```
+
+A tiny transformer with an encoder and a decoder:
+
 ```python
 import torch
 from tiny_transformer import TinyTransformer
