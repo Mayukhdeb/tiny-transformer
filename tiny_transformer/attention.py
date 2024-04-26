@@ -16,10 +16,10 @@ class ScaledDotProductAttention(nn.Module):
 
         if mask is not None:
             assert (attn.shape[-2:] == mask.shape[-2:])
-            attn = attn + mask
+            attn = attn + mask.to(attn.device)
 
         attn = self.dropout(F.softmax(attn, dim=-1))
-        output = torch.matmul(attn, v)
+        output = torch.matmul(attn.to(dtype=v.dtype), v)
 
         return output
 
